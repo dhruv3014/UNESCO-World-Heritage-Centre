@@ -52,6 +52,25 @@ export async function api(path, opts = {}) {
   return res.json();
 }
 
+// Download a file from an authenticated endpoint (export). Fetches with the
+// access token, then triggers a browser download of the returned blob.
+export async function apiDownload(path, filename) {
+  let res = await rawRequest(path);
+  if (res.status === 401) {
+    if (await tryRefresh()) res = await rawRequest(path);
+  }
+  if (!res.ok) throw new Error(`Download failed (${res.status})`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 // Build a query string from an object, skipping empty values.
 export function buildQuery(params) {
   const sp = new URLSearchParams();

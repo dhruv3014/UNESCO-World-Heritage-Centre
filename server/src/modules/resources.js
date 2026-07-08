@@ -21,6 +21,8 @@ export const RESOURCES = [
     description: "Core information about each World Heritage site.",
     pk: ["s_id"],
     defaultSort: "s_id",
+    // Enables full-text search; `headline` is the column used for highlighted snippets.
+    fullText: { headline: "historical_detail" },
     fields: [
       num("s_id", "Site ID", { isId: true, filterable: true }),
       str("site_name", "Site Name", { searchable: true, filterable: true }),

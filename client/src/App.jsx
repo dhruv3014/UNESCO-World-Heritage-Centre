@@ -7,6 +7,10 @@ import Login from "@/pages/Login.jsx";
 import Dashboard from "@/pages/Dashboard.jsx";
 import Browse from "@/pages/Browse.jsx";
 import History from "@/pages/History.jsx";
+import Search from "@/pages/Search.jsx";
+import MapView from "@/pages/MapView.jsx";
+import Feed from "@/pages/Feed.jsx";
+import SchemaEditor from "@/pages/SchemaEditor.jsx";
 
 function FullScreenSpinner() {
   return (
@@ -41,7 +45,11 @@ export default function App() {
         <Route index element={<Landing />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="browse/:resourceKey?" element={<Browse />} />
+        <Route path="search" element={<Search />} />
+        <Route path="map" element={<MapView />} />
+        <Route path="feed" element={<Feed />} />
         <Route path="history" element={<History />} />
+        <Route path="schema" element={<SchemaEditor />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

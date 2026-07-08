@@ -1,19 +1,24 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth.jsx";
 import { Badge, Button } from "@/components/ui/index.jsx";
-import { Landmark, LayoutDashboard, Database, History, LogOut, Home } from "lucide-react";
+import { Landmark, LayoutDashboard, Database, History, LogOut, Home, Search, Map, Rss, Table2 } from "lucide-react";
 import { cn } from "@/lib/utils.js";
 
 const navItems = [
   { to: "/", label: "Overview", icon: Home, end: true },
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, end: false },
   { to: "/browse", label: "Data Explorer", icon: Database, end: false },
+  { to: "/search", label: "Search", icon: Search, end: false },
+  { to: "/map", label: "Site Map", icon: Map, end: false },
+  { to: "/feed", label: "My Feed", icon: Rss, end: false },
   { to: "/history", label: "Change History", icon: History, end: false },
+  { to: "/schema", label: "Schema Editor", icon: Table2, end: false, adminOnly: true },
 ];
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const visibleNav = navItems.filter((item) => !item.adminOnly || user?.role === "ADMIN");
 
   return (
     <div className="min-h-screen flex">
@@ -25,8 +30,8 @@ export default function Layout() {
             <div className="text-xs text-muted-foreground">Heritage Database</div>
           </div>
         </div>
-        <nav className="flex-1 p-3 space-y-1">
-          {navItems.map((item) => (
+        <nav className="flex-1 p-3 space-y-1 overflow-auto">
+          {visibleNav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

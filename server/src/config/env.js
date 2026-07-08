@@ -5,7 +5,11 @@ export const env = {
   port: Number(process.env.PORT || 4000),
   nodeEnv: process.env.NODE_ENV || "development",
   isProd: process.env.NODE_ENV === "production",
-  clientOrigin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
+  // Comma-separated allowlist of front-end origins allowed to call the API.
+  clientOrigins: (process.env.CLIENT_ORIGIN || "http://localhost:5173")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean),
   databaseUrl: process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/unesco_whc",
   jwtAccessSecret: process.env.JWT_ACCESS_SECRET || "dev_access_secret_change_me",
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || "dev_refresh_secret_change_me",

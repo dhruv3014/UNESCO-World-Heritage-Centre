@@ -20,11 +20,11 @@ function setRefreshCookie(res, token) {
 }
 
 // Basic input checks kept inline so the flow is easy to follow.
-function validateCredentials(body, { requireName } = {}) {
+function validateCredentials(body) {
   const { email, password, name } = body;
   if (!email || typeof email !== "string" || !email.includes("@")) throw badRequest("A valid email is required");
   if (!password || password.length < 8) throw badRequest("Password must be at least 8 characters");
-  return { email, password, name: requireName ? name : name };
+  return { email, password, name };
 }
 
 router.post("/register", async (req, res, next) => {

@@ -16,12 +16,22 @@ export function useList(resourceKey, params) {
     sort: params.sort,
     order: params.order,
     search: params.search,
+    view: params.view,
     filters: params.filters && params.filters.length ? JSON.stringify(params.filters) : undefined,
   });
   return useQuery({
     queryKey: ["list", resourceKey, params],
     queryFn: () => api(`/api/${resourceKey}${query}`),
     enabled: Boolean(resourceKey),
+  });
+}
+
+// Full-text search (highlighted) for resources that support it (e.g. sites).
+export function useSearch(resourceKey, q) {
+  return useQuery({
+    queryKey: ["search", resourceKey, q],
+    queryFn: () => api(`/api/${resourceKey}/search${buildQuery({ q })}`),
+    enabled: Boolean(resourceKey && q && q.trim().length > 1),
   });
 }
 
@@ -80,8 +90,88 @@ export function useRevert() {
   });
 }
 
+// Restore path: single-key uses /:id/restore, composite uses /restore-detail?<keys>.
+function restorePath(resource, record) {
+  if (resource.pk.length === 1) return `/api/${resource.key}/${record[resource.pk[0]]}/restore`;
+  const q = buildQuery(Object.fromEntries(resource.pk.map((k) => [k, record[k]])));
+  return `/api/${resource.key}/restore-detail${q}`;
+}
+
+export function useRestore(resource) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (record) => api(restorePath(resource, record), { method: "POST" }),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+export function useImport(resource) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (rows) => api(`/api/${resource.key}/import`, { method: "POST", body: { rows } }),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+// --- watchlist + in-app feed ---
+
+export function useWatches() {
+  return useQuery({ queryKey: ["watches"], queryFn: () => api("/api/watch").then((r) => r.data) });
+}
+
+export function useFeed(page = 1) {
+  return useQuery({ queryKey: ["feed", page], queryFn: () => api(`/api/feed${buildQuery({ page })}`) });
+}
+
+export function useToggleWatch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ table, recordId, watching }) =>
+      watching
+        ? api(`/api/watch${buildQuery({ table, recordId })}`, { method: "DELETE" })
+        : api("/api/watch", { method: "POST", body: { table, recordId } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["watches"] });
+      qc.invalidateQueries({ queryKey: ["feed"] });
+    },
+  });
+}
+
+// --- schema editor (admin) ---
+
+export function useAddColumn(resourceKey) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body) => api(`/api/schema/${resourceKey}/columns`, { method: "POST", body }),
+    onSuccess: () => invalidateSchema(qc),
+  });
+}
+
+export function useRenameColumn(resourceKey) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ column, newName }) => api(`/api/schema/${resourceKey}/columns/${column}`, { method: "PATCH", body: { newName } }),
+    onSuccess: () => invalidateSchema(qc),
+  });
+}
+
+export function useDropColumn(resourceKey) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (column) => api(`/api/schema/${resourceKey}/columns/${column}`, { method: "DELETE" }),
+    onSuccess: () => invalidateSchema(qc),
+  });
+}
+
+function invalidateSchema(qc) {
+  qc.invalidateQueries({ queryKey: ["meta"] });
+  qc.invalidateQueries({ queryKey: ["list"] });
+  qc.invalidateQueries({ queryKey: ["schema-changes"] });
+}
+
 function invalidateAll(qc) {
   qc.invalidateQueries({ queryKey: ["list"] });
   qc.invalidateQueries({ queryKey: ["history"] });
   qc.invalidateQueries({ queryKey: ["stats"] });
+  qc.invalidateQueries({ queryKey: ["feed"] });
 }

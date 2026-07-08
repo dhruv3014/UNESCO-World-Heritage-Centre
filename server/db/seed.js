@@ -47,6 +47,9 @@ async function main() {
     { country_code: 33, country_name: "France", region: "Europe", representative: "M. Dubois", veto_power: true, donor_id: 3 },
     { country_code: 20, country_name: "Egypt", region: "Arab States", representative: "H. Nasser", veto_power: false, donor_id: 4 },
     { country_code: 51, country_name: "Peru", region: "Latin America", representative: "L. Quispe", veto_power: false, donor_id: null },
+    { country_code: 39, country_name: "Italy", region: "Europe", representative: "G. Rossi", veto_power: false, donor_id: 3 },
+    { country_code: 86, country_name: "China", region: "Asia-Pacific", representative: "W. Li", veto_power: true, donor_id: 2 },
+    { country_code: 1, country_name: "United States", region: "North America", representative: "J. Carter", veto_power: false, donor_id: 1 },
   ];
   for (const c of countries) await insert("member_country", c, "country_code");
 
@@ -66,6 +69,9 @@ async function main() {
     { s_id: 3, site_name: "Palace of Versailles", address: "Versailles", latitude: 48.8049, longitude: 2.1204, area: 1070.0, country_code: 33, category: "Cultural", buffer_zone: 9467.0, historical_detail: "Royal residence of the French monarchy from 1682.", ownership: "French State", institute_id: 3 },
     { s_id: 4, site_name: "Memphis and its Necropolis", address: "Giza", latitude: 29.9792, longitude: 31.1342, area: 16359.0, country_code: 20, category: "Cultural", buffer_zone: 0.0, historical_detail: "Includes the Pyramid fields from Giza to Dahshur.", ownership: "Government of Egypt", institute_id: 4 },
     { s_id: 5, site_name: "Machu Picchu", address: "Cusco Region", latitude: -13.1631, longitude: -72.545, area: 32592.0, country_code: 51, category: "Mixed", buffer_zone: 0.0, historical_detail: "15th-century Inca citadel in the Andes.", ownership: "Government of Peru", institute_id: null },
+    { s_id: 6, site_name: "Historic Centre of Rome", address: "Rome", latitude: 41.8902, longitude: 12.4922, area: 1431.0, country_code: 39, category: "Cultural", buffer_zone: 340.0, historical_detail: "Includes the Colosseum and Roman Forum.", ownership: "Italian State", institute_id: null },
+    { s_id: 7, site_name: "Great Wall", address: "Northern China", latitude: 40.4319, longitude: 116.5704, area: 210000.0, country_code: 86, category: "Cultural", buffer_zone: 0.0, historical_detail: "Series of fortifications built across centuries.", ownership: "Government of China", institute_id: null },
+    { s_id: 8, site_name: "Yellowstone National Park", address: "Wyoming", latitude: 44.428, longitude: -110.5885, area: 898300.0, country_code: 1, category: "Natural", buffer_zone: 0.0, historical_detail: "First national park in the world, established 1872.", ownership: "US National Park Service", institute_id: null },
   ];
   for (const s of sites) await insert("site_detail", s, "s_id");
 
@@ -105,11 +111,22 @@ async function main() {
   await insert("danger_site_fund", { f_id: 3, s_id: 4 }, "f_id");
 
   // --- Donations ---
+  // Spread across many months so the "donations over time" chart is meaningful.
   const donations = [
-    { transaction_id: 1, donor_id: 1, amount: 100000, date: "2023-04-01", time: "10:30" },
-    { transaction_id: 2, donor_id: 2, amount: 150000, date: "2023-06-15", time: "14:05" },
-    { transaction_id: 3, donor_id: 3, amount: 80000, date: "2024-01-20", time: "09:45" },
-    { transaction_id: 4, donor_id: 4, amount: 50000, date: "2024-02-28", time: "16:20" },
+    { transaction_id: 1, donor_id: 1, amount: 100000, date: "2023-01-12", time: "10:30" },
+    { transaction_id: 2, donor_id: 2, amount: 150000, date: "2023-02-15", time: "14:05" },
+    { transaction_id: 3, donor_id: 3, amount: 80000, date: "2023-03-20", time: "09:45" },
+    { transaction_id: 4, donor_id: 4, amount: 50000, date: "2023-04-28", time: "16:20" },
+    { transaction_id: 5, donor_id: 1, amount: 120000, date: "2023-06-05", time: "11:15" },
+    { transaction_id: 6, donor_id: 2, amount: 90000, date: "2023-07-19", time: "13:40" },
+    { transaction_id: 7, donor_id: 3, amount: 60000, date: "2023-09-02", time: "10:00" },
+    { transaction_id: 8, donor_id: 4, amount: 70000, date: "2023-10-22", time: "15:30" },
+    { transaction_id: 9, donor_id: 1, amount: 200000, date: "2023-12-11", time: "09:10" },
+    { transaction_id: 10, donor_id: 2, amount: 110000, date: "2024-01-15", time: "12:25" },
+    { transaction_id: 11, donor_id: 3, amount: 95000, date: "2024-02-08", time: "14:50" },
+    { transaction_id: 12, donor_id: 4, amount: 130000, date: "2024-03-27", time: "16:05" },
+    { transaction_id: 13, donor_id: 1, amount: 175000, date: "2024-05-14", time: "10:45" },
+    { transaction_id: 14, donor_id: 2, amount: 85000, date: "2024-06-30", time: "13:20" },
   ];
   for (const d of donations) await insert("donation", d, "transaction_id");
 

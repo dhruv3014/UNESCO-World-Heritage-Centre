@@ -5,7 +5,8 @@ import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Select, Spinne
 import { formatValue } from "@/lib/utils.js";
 import { Undo2, GitCommit, ChevronLeft, ChevronRight } from "lucide-react";
 
-const actionTone = { CREATE: "green", UPDATE: "blue", DELETE: "red", REVERT: "amber" };
+const actionTone = { CREATE: "green", UPDATE: "blue", DELETE: "red", RESTORE: "green", REVERT: "amber" };
+const REVERTIBLE = ["CREATE", "UPDATE", "DELETE"];
 
 export default function History() {
   const { user } = useAuth();
@@ -65,6 +66,7 @@ export default function History() {
             <option value="CREATE">Create</option>
             <option value="UPDATE">Update</option>
             <option value="DELETE">Delete</option>
+            <option value="RESTORE">Restore</option>
             <option value="REVERT">Revert</option>
           </Select>
         </div>
@@ -119,7 +121,7 @@ function HistoryItem({ log, isAdmin, onRevert, reverting }) {
               {log.actor_email || "system"} · {new Date(log.created_at).toLocaleString()}
             </div>
           </div>
-          {isAdmin && log.action !== "REVERT" && (
+          {isAdmin && REVERTIBLE.includes(log.action) && (
             <Button variant="outline" size="sm" onClick={onRevert} disabled={reverting}>
               <Undo2 className="h-3.5 w-3.5" /> Revert
             </Button>

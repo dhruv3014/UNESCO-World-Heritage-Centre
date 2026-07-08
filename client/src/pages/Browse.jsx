@@ -1,12 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useResources, useList, useCreate, useUpdate, useDelete } from "@/api/hooks.js";
+import {
+  useResources, useList, useCreate, useUpdate, useDelete,
+  useRestore, useImport, useWatches, useToggleWatch,
+} from "@/api/hooks.js";
+import { apiDownload, buildQuery } from "@/api/client.js";
 import { useAuth } from "@/hooks/useAuth.jsx";
 import { Badge, Button, Card, Input, Select, Spinner } from "@/components/ui/index.jsx";
 import Modal from "@/components/Modal.jsx";
 import RecordForm from "@/components/RecordForm.jsx";
-import { formatValue } from "@/lib/utils.js";
-import { Plus, Pencil, Trash2, Search, Filter, X, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { formatValue, recordIdOf, parseImport } from "@/lib/utils.js";
+import {
+  Plus, Pencil, Trash2, Search, Filter, X, ArrowUpDown, ChevronLeft, ChevronRight,
+  Download, Upload, Star, Undo2,
+} from "lucide-react";
 
 export default function Browse() {
   const { resourceKey } = useParams();
@@ -33,8 +40,8 @@ export default function Browse() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Data Explorer</h1>
         <p className="text-muted-foreground mt-1">
-          Browse, search and filter every table.{" "}
-          {isAdmin ? "As an admin you can also add, edit and delete records." : "You have read-only access."}
+          Browse, search, filter and export every table.{" "}
+          {isAdmin ? "As an admin you can also add, edit, delete, import and restore records." : "You have read-only access."}
         </p>
       </div>
 
@@ -66,36 +73,48 @@ function ResourceTable({ resource, isAdmin }) {
   const [searchInput, setSearchInput] = useState("");
   const [filters, setFilters] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [view, setView] = useState("active"); // "active" | "deleted"
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [importOpen, setImportOpen] = useState(false);
   const [formError, setFormError] = useState("");
 
-  const { data, isLoading, isError, error } = useList(resource.key, { page, limit: 25, sort, order, search, filters });
+  const { data, isLoading, isError, error } = useList(resource.key, { page, limit: 25, sort, order, search, filters, view });
   const createM = useCreate(resource);
   const updateM = useUpdate(resource);
   const deleteM = useDelete(resource);
+  const restoreM = useRestore(resource);
+  const toggleWatch = useToggleWatch();
+  const { data: watches } = useWatches();
 
-  useEffect(() => setPage(1), [search, filters, sort, order]);
+  const watchedSet = useMemo(
+    () => new Set((watches || []).map((w) => `${w.table_name}:${w.record_id}`)),
+    [watches]
+  );
+
+  useEffect(() => setPage(1), [search, filters, sort, order, view]);
 
   const toggleSort = (field) => {
     if (sort === field) setOrder(order === "asc" ? "desc" : "asc");
-    else {
-      setSort(field);
-      setOrder("asc");
-    }
+    else { setSort(field); setOrder("asc"); }
   };
 
   const submitForm = (body) => {
     setFormError("");
     const onError = (e) => setFormError(e instanceof Error ? e.message : "Failed");
-    if (editing) {
-      updateM.mutate({ record: editing, body }, { onSuccess: () => setFormOpen(false), onError });
-    } else {
-      createM.mutate(body, { onSuccess: () => setFormOpen(false), onError });
-    }
+    if (editing) updateM.mutate({ record: editing, body }, { onSuccess: () => setFormOpen(false), onError });
+    else createM.mutate(body, { onSuccess: () => setFormOpen(false), onError });
   };
+
+  const exportQuery = buildQuery({
+    search,
+    view: view === "deleted" ? "deleted" : undefined,
+    filters: filters.length ? JSON.stringify(filters) : undefined,
+  });
+  const doExport = (format) =>
+    apiDownload(`/api/${resource.key}/export?format=${format}${exportQuery ? "&" + exportQuery.slice(1) : ""}`, `${resource.key}.${format}`);
 
   const filterableFields = resource.fields.filter((f) => f.filterable);
 
@@ -112,25 +131,45 @@ function ResourceTable({ resource, isAdmin }) {
             onKeyDown={(e) => e.key === "Enter" && setSearch(searchInput)}
           />
         </div>
-        <Button variant="outline" size="sm" onClick={() => setSearch(searchInput)}>
-          Search
-        </Button>
+        <Button variant="outline" size="sm" onClick={() => setSearch(searchInput)}>Search</Button>
         <Button variant={showFilters ? "default" : "outline"} size="sm" onClick={() => setShowFilters((s) => !s)}>
           <Filter className="h-4 w-4" /> Filters {filters.length > 0 && `(${filters.length})`}
         </Button>
+        <Button variant="outline" size="sm" onClick={() => doExport("csv")}>
+          <Download className="h-4 w-4" /> CSV
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => doExport("json")}>
+          <Download className="h-4 w-4" /> JSON
+        </Button>
         {isAdmin && (
-          <Button size="sm" onClick={() => { setEditing(null); setFormError(""); setFormOpen(true); }}>
-            <Plus className="h-4 w-4" /> Add
-          </Button>
+          <>
+            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+              <Upload className="h-4 w-4" /> Import
+            </Button>
+            <Button size="sm" onClick={() => { setEditing(null); setFormError(""); setFormOpen(true); }}>
+              <Plus className="h-4 w-4" /> Add
+            </Button>
+          </>
         )}
+      </div>
+
+      {/* Active / Trash toggle */}
+      <div className="flex gap-2 mb-4">
+        {["active", "deleted"].map((v) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={"text-sm px-3 py-1 rounded-md " + (view === v ? "bg-secondary font-medium" : "text-muted-foreground hover:bg-secondary/60")}
+          >
+            {v === "active" ? "Active" : "Trash"}
+          </button>
+        ))}
       </div>
 
       {showFilters && <FilterBuilder fields={filterableFields} filters={filters} setFilters={setFilters} />}
 
       {isLoading ? (
-        <div className="flex justify-center py-16">
-          <Spinner className="h-6 w-6" />
-        </div>
+        <div className="flex justify-center py-16"><Spinner className="h-6 w-6" /></div>
       ) : isError ? (
         <p className="text-destructive py-8 text-center">{error?.message}</p>
       ) : (
@@ -138,6 +177,7 @@ function ResourceTable({ resource, isAdmin }) {
           <table className="w-full text-sm">
             <thead className="bg-secondary/60">
               <tr>
+                <th className="w-8 px-2 py-2" />
                 {resource.fields.map((f) => (
                   <th key={f.name} className="text-left px-3 py-2 font-medium whitespace-nowrap">
                     <button className="inline-flex items-center gap-1 hover:text-primary" onClick={() => toggleSort(f.name)}>
@@ -146,34 +186,58 @@ function ResourceTable({ resource, isAdmin }) {
                     </button>
                   </th>
                 ))}
-                {isAdmin && <th className="px-3 py-2 text-right">Actions</th>}
+                <th className="px-3 py-2 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {data && data.data.length > 0 ? (
-                data.data.map((row, i) => (
-                  <tr key={i} className="border-t border-border hover:bg-secondary/40">
-                    {resource.fields.map((f) => (
-                      <td key={f.name} className="px-3 py-2 max-w-[220px] truncate" title={formatValue(row[f.name])}>
-                        {formatValue(row[f.name])}
+                data.data.map((row, i) => {
+                  const rid = recordIdOf(resource, row);
+                  const watching = watchedSet.has(`${resource.table}:${rid}`);
+                  return (
+                    <tr key={i} className="border-t border-border hover:bg-secondary/40">
+                      <td className="px-2 py-2">
+                        <button
+                          title={watching ? "Stop watching" : "Watch for changes"}
+                          onClick={() => toggleWatch.mutate({ table: resource.table, recordId: rid, watching })}
+                          className={watching ? "text-amber-500" : "text-muted-foreground/40 hover:text-amber-500"}
+                        >
+                          <Star className="h-4 w-4" fill={watching ? "currentColor" : "none"} />
+                        </button>
                       </td>
-                    ))}
-                    {isAdmin && (
+                      {resource.fields.map((f) => (
+                        <td key={f.name} className="px-3 py-2 max-w-[220px] truncate" title={formatValue(row[f.name])}>
+                          {formatValue(row[f.name])}
+                        </td>
+                      ))}
                       <td className="px-3 py-2 text-right whitespace-nowrap">
-                        <button className="text-muted-foreground hover:text-primary p-1" onClick={() => { setEditing(row); setFormError(""); setFormOpen(true); }}>
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button className="text-muted-foreground hover:text-destructive p-1" onClick={() => setDeleteTarget(row)}>
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        {view === "deleted" ? (
+                          isAdmin && (
+                            <button className="text-muted-foreground hover:text-emerald-600 p-1 inline-flex items-center gap-1 text-xs"
+                              onClick={() => restoreM.mutate(row)}>
+                              <Undo2 className="h-4 w-4" /> Restore
+                            </button>
+                          )
+                        ) : (
+                          isAdmin && (
+                            <>
+                              <button className="text-muted-foreground hover:text-primary p-1" onClick={() => { setEditing(row); setFormError(""); setFormOpen(true); }}>
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                              <button className="text-muted-foreground hover:text-destructive p-1" onClick={() => setDeleteTarget(row)}>
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </>
+                          )
+                        )}
                       </td>
-                    )}
-                  </tr>
-                ))
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
-                  <td colSpan={resource.fields.length + (isAdmin ? 1 : 0)} className="px-3 py-10 text-center text-muted-foreground">
-                    No records found.
+                  <td colSpan={resource.fields.length + 2} className="px-3 py-10 text-center text-muted-foreground">
+                    {view === "deleted" ? "Trash is empty." : "No records found."}
                   </td>
                 </tr>
               )}
@@ -184,9 +248,7 @@ function ResourceTable({ resource, isAdmin }) {
 
       {data && (
         <div className="flex items-center justify-between mt-4 text-sm">
-          <span className="text-muted-foreground">
-            {data.total} records · page {data.page} of {data.totalPages || 1}
-          </span>
+          <span className="text-muted-foreground">{data.total} records · page {data.page} of {data.totalPages || 1}</span>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
               <ChevronLeft className="h-4 w-4" /> Prev
@@ -210,24 +272,79 @@ function ResourceTable({ resource, isAdmin }) {
         />
       </Modal>
 
-      <Modal open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} title="Confirm delete" className="max-w-md">
+      <Modal open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} title="Move to trash" className="max-w-md">
         <p className="text-sm text-muted-foreground mb-4">
-          This will permanently delete the record. The change is recorded in history and can be reverted by an admin.
+          This soft-deletes the record — it moves to Trash and can be restored anytime. The change is recorded in history.
         </p>
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => setDeleteTarget(null)}>
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            disabled={deleteM.isPending}
-            onClick={() => deleteTarget && deleteM.mutate(deleteTarget, { onSuccess: () => setDeleteTarget(null) })}
-          >
+          <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+          <Button variant="destructive" disabled={deleteM.isPending}
+            onClick={() => deleteTarget && deleteM.mutate(deleteTarget, { onSuccess: () => setDeleteTarget(null) })}>
             {deleteM.isPending ? "Deleting…" : "Delete"}
           </Button>
         </div>
       </Modal>
+
+      <ImportModal open={importOpen} onClose={() => setImportOpen(false)} resource={resource} />
     </Card>
+  );
+}
+
+function ImportModal({ open, onClose, resource }) {
+  const [text, setText] = useState("");
+  const [error, setError] = useState("");
+  const [result, setResult] = useState(null);
+  const importM = useImport(resource);
+
+  const onFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (file) setText(await file.text());
+  };
+
+  const run = () => {
+    setError("");
+    setResult(null);
+    try {
+      const rows = parseImport(text);
+      if (!rows.length) throw new Error("No rows found");
+      importM.mutate(rows, {
+        onSuccess: (res) => setResult(res),
+        onError: (e) => setError(e.message),
+      });
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title={`Import ${resource.label}`}>
+      <p className="text-sm text-muted-foreground mb-3">
+        Paste JSON (array of objects) or CSV, or choose a file. Column names must match the table fields.
+        Each row is validated; invalid rows are reported and skipped.
+      </p>
+      <input type="file" accept=".json,.csv,text/csv,application/json" onChange={onFile} className="mb-2 text-sm" />
+      <textarea
+        className="w-full h-40 rounded-md border border-input bg-background p-2 text-xs font-mono"
+        placeholder='[{"donor_id": 99, "donor_name": "New Donor"}]'
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+      />
+      {error && <p className="text-sm text-destructive mt-2">{error}</p>}
+      {result && (
+        <div className="text-sm mt-2">
+          <p className="text-emerald-600">Inserted {result.inserted} · Failed {result.failed}</p>
+          {result.errors?.slice(0, 5).map((e, i) => (
+            <p key={i} className="text-xs text-destructive">Row {e.row}: {e.message}</p>
+          ))}
+        </div>
+      )}
+      <div className="flex justify-end gap-2 mt-3">
+        <Button variant="outline" onClick={onClose}>Close</Button>
+        <Button onClick={run} disabled={importM.isPending || !text.trim()}>
+          {importM.isPending ? "Importing…" : "Import"}
+        </Button>
+      </div>
+    </Modal>
   );
 }
 
@@ -251,17 +368,13 @@ function FilterBuilder({ fields, filters, setFilters }) {
         <div className="min-w-[140px]">
           <label className="text-xs text-muted-foreground">Field</label>
           <Select value={field} onChange={(e) => { setField(e.target.value); setOp("contains"); }}>
-            {fields.map((f) => (
-              <option key={f.name} value={f.name}>{f.label}</option>
-            ))}
+            {fields.map((f) => <option key={f.name} value={f.name}>{f.label}</option>)}
           </Select>
         </div>
         <div className="w-28">
           <label className="text-xs text-muted-foreground">Operator</label>
           <Select value={op} onChange={(e) => setOp(e.target.value)}>
-            {ops.map((o) => (
-              <option key={o} value={o}>{o}</option>
-            ))}
+            {ops.map((o) => <option key={o} value={o}>{o}</option>)}
           </Select>
         </div>
         <div className="flex-1 min-w-[140px]">
@@ -280,14 +393,10 @@ function FilterBuilder({ fields, filters, setFilters }) {
           {filters.map((f, i) => (
             <Badge key={i} tone="blue" className="gap-1">
               {f.field} {f.op} "{f.value}"
-              <button onClick={() => setFilters(filters.filter((_, j) => j !== i))}>
-                <X className="h-3 w-3" />
-              </button>
+              <button onClick={() => setFilters(filters.filter((_, j) => j !== i))}><X className="h-3 w-3" /></button>
             </Badge>
           ))}
-          <button className="text-xs text-muted-foreground hover:text-foreground underline" onClick={() => setFilters([])}>
-            Clear all
-          </button>
+          <button className="text-xs text-muted-foreground hover:text-foreground underline" onClick={() => setFilters([])}>Clear all</button>
         </div>
       )}
     </div>
