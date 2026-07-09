@@ -13,7 +13,7 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      "/api": { target: "http://localhost:4000", changeOrigin: true },
+      "/api": { target: "https://unesco-world-heritage-centre.onrender.com", changeOrigin: true },
     },
   },
 });
