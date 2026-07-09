@@ -40,10 +40,6 @@ export default function Login() {
           A secured, version-controlled portal over the World Heritage database — explore sites, funds,
           donations, committees and awards with full search and filtering.
         </p>
-        <div className="text-sm text-primary-foreground/70 space-y-1">
-          <div>Demo admin — admin@whc.org / Admin@12345</div>
-          <div>Demo user — user@whc.org / User@12345</div>
-        </div>
       </div>
 
       <div className="flex items-center justify-center p-6">
