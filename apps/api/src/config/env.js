@@ -24,6 +24,8 @@ export const config = {
     url: process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/whc",
     // Hosted databases (Neon, Render, etc.) require SSL.
     ssl: (process.env.DATABASE_SSL ?? String(isProduction)) === "true",
+    // When true, the API will create schema + seed data if the DB is empty.
+    initOnStart: (process.env.DATABASE_INIT_ON_START ?? "true") === "true",
   },
 
   auth: {

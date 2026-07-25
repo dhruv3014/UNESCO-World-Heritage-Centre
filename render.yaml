@@ -18,6 +18,8 @@ services:
         sync: false
       - key: DATABASE_SSL
         value: "true"
+      - key: DATABASE_INIT_ON_START
+        value: "true"
       # Comma-separated list of allowed frontend origins (your Vercel URL).
       - key: CLIENT_ORIGIN
         sync: false

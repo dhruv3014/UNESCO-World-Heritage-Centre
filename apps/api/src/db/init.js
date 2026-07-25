@@ -13,14 +13,17 @@ import { pool } from "../config/database.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
-async function main() {
+export async function run(closePool = true) {
   const sql = await readFile(path.join(here, "schema.sql"), "utf8");
   await pool.query(sql);
   console.log("✓ Database schema created (all tables ready).");
-  await pool.end();
+
+  if (closePool) await pool.end();
 }
 
-main().catch((error) => {
-  console.error("✗ Failed to initialise the database:", error);
-  process.exit(1);
-});
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  run().catch((error) => {
+    console.error("✗ Failed to initialise the database:", error);
+    process.exit(1);
+  });
+}

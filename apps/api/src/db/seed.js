@@ -6,10 +6,10 @@
  * Safe to re-run — every insert ignores rows that already exist.
  */
 import bcrypt from "bcryptjs";
+import { fileURLToPath } from "node:url";
 import { pool, query } from "../config/database.js";
 import { config } from "../config/env.js";
 
-/** Insert a row, ignoring it if the primary key already exists. */
 async function insert(table, row, conflictColumns) {
   const columns = Object.keys(row);
   const placeholders = columns.map((_, i) => `$${i + 1}`);
@@ -150,7 +150,7 @@ async function seedDomain() {
   for (const award of awards) await insert("award", award, "year, country_code, category");
 }
 
-async function main() {
+export async function run(closePool = true) {
   console.log("Seeding database...");
   await seedUsers();
   await seedDomain();
@@ -166,10 +166,13 @@ async function main() {
   console.log("✓ Seed complete.");
   console.log(`  Admin: ${config.admin.email} / ${config.admin.password}`);
   console.log("  User:  user@whc.org / User@12345");
-  await pool.end();
+
+  if (closePool) await pool.end();
 }
 
-main().catch((error) => {
-  console.error("✗ Seed failed:", error);
-  process.exit(1);
-});
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  run().catch((error) => {
+    console.error("✗ Seed failed:", error);
+    process.exit(1);
+  });
+}
