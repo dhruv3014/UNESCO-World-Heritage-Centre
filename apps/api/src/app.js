@@ -18,19 +18,20 @@ export function createApp() {
   app.use(helmet());
   app.use(
     cors({
-      // Allow same-origin/no-origin requests and any allowlisted frontend origin.
+      // Allow same-origin/no-origin requests and only exact allowlisted frontend origins.
       origin(origin, callback) {
         if (!origin) return callback(null, true);
 
-        for (const allowedOrigin of config.clientOrigins) {
-          if (allowedOrigin === origin) return callback(null, true);
-          if (allowedOrigin === "*") return callback(null, true);
-        }
+        const normalizedOrigin = origin.replace(/\/$/, "").trim();
+        const allowedOrigins = config.clientOrigins.map((entry) => entry.replace(/\/$/, "").trim());
 
-        if (!config.isProduction && /^(https?:)?\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+        if (allowedOrigins.includes(normalizedOrigin)) return callback(null, true);
+
+        if (!config.isProduction && /^(https?:)?\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalizedOrigin)) {
           return callback(null, true);
         }
 
+        console.warn("CORS rejected origin:", normalizedOrigin, "allowed:", allowedOrigins);
         callback(new Error("Not allowed by CORS"));
       },
       credentials: true,
