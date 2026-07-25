@@ -1,7 +1,24 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
+build/
+
+# Environment files (never commit secrets)
 .env
+.env.local
+.env.*.local
+
+# Logs
 *.log
+npm-debug.log*
+
+# OS / editor
 .DS_Store
-client/vite.config.ts.timestamp-*.mjs
-client/vite.config.js
+.vscode/
+.idea/
+
+# Vercel
+.vercel/
+vercel.json

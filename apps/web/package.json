@@ -1,0 +1,33 @@
+{
+  "name": "@whc/web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "UNESCO World Heritage Centre — React (Vite) frontend.",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.101.4",
+    "clsx": "^2.1.1",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^1.26.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^6.30.0",
+    "recharts": "^3.10.0",
+    "tailwind-merge": "^3.6.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.4",
+    "autoprefixer": "^10.5.4",
+    "postcss": "^8.5.23",
+    "tailwindcss": "^3.4.8",
+    "vite": "^8.1.5"
+  }
+}

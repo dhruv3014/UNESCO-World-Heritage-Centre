@@ -1,0 +1,36 @@
+# Render Blueprint for the backend API.
+# In Render: New + → Blueprint → point at this repo. Render reads this file.
+# (Or create a Web Service manually with Root Directory = apps/api.)
+services:
+  - type: web
+    name: whc-api
+    runtime: node
+    plan: free
+    rootDir: apps/api
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Neon connection string — paste it in the Render dashboard (kept secret).
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_SSL
+        value: "true"
+      # Comma-separated list of allowed frontend origins (your Vercel URL).
+      - key: CLIENT_ORIGIN
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: ACCESS_TOKEN_TTL
+        value: 15m
+      - key: REFRESH_TOKEN_TTL_DAYS
+        value: "7"
+      # Bootstrap admin created by the seed script.
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false

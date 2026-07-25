@@ -1,0 +1,21 @@
+{
+  "name": "world-heritage-portal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "UNESCO World Heritage Centre database portal — Express API (apps/api) + React/Vite frontend (apps/web).",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,green -k \"npm --prefix apps/api run dev\" \"npm --prefix apps/web run dev\"",
+    "install:all": "npm install && npm --prefix apps/api install && npm --prefix apps/web install",
+    "db:init": "npm --prefix apps/api run db:init",
+    "db:seed": "npm --prefix apps/api run db:seed",
+    "db:setup": "npm run db:init && npm run db:seed",
+    "setup": "npm run install:all && npm run db:setup",
+    "build:web": "npm --prefix apps/web run build"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.4"
+  }
+}
