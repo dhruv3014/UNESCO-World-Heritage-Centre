@@ -18,6 +18,8 @@ world-heritage-portal/
 **Stack:** React 18 + Vite 6 · Express 4 + Node (ESM) · PostgreSQL (raw SQL via `pg`)
 Hosted on **Vercel** (web) + **Render** (api) + **Neon** (database). No ORM, no Docker.
 
+**Live site:** https://unesco-world-heritage-centre-virid.vercel.app
+
 ---
 
 ## Features
