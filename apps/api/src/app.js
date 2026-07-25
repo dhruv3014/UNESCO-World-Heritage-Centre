@@ -20,18 +20,17 @@ export function createApp() {
     cors({
       // Allow same-origin/no-origin requests and any allowlisted frontend origin.
       origin(origin, callback) {
-        // No origin (same origin or non-browser clients) — allow.
         if (!origin) return callback(null, true);
 
-        // Exact-match against configured client origins.
-        if (config.clientOrigins.includes(origin)) return callback(null, true);
+        for (const allowedOrigin of config.clientOrigins) {
+          if (allowedOrigin === origin) return callback(null, true);
+          if (allowedOrigin === "*") return callback(null, true);
+        }
 
-        // In development allow localhost/127.0.0.1 origins to simplify local testing.
         if (!config.isProduction && /^(https?:)?\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
           return callback(null, true);
         }
 
-        // Otherwise block the origin.
         callback(new Error("Not allowed by CORS"));
       },
       credentials: true,
